@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linkly - URL Kısaltıcı</title>
+    <style>
+        :root {
+            --primary-color: #6C5CE7;
+            --secondary-color: #a29bfe;
+            --bg-dark: #0F1118;
+            --bg-darker: #070B14;
+            --text-light: #ffffff;
+            --text-gray: #8A8F98;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: var(--bg-darker);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-light);
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: var(--primary-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .hero {
+            text-align: center;
+            margin: 3rem 0;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 span {
+            color: var(--primary-color);
+        }
+
+        .hero p {
+            color: var(--text-gray);
+            margin-bottom: 2rem;
+        }
+
+        .url-form {
+            background-color: var(--bg-darker);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        input[type="url"] {
+            flex: 1;
+            padding: 1rem;
+            border: 1px solid #2D3139;
+            border-radius: 8px;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 1rem 2rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+            background-color: var(--bg-darker);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #2D3139;
+        }
+
+        .results-table th {
+            background-color: rgba(108, 92, 231, 0.1);
+            color: var(--text-gray);
+            font-weight: 500;
+        }
+
+        .short-link {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .copy-btn {
+            padding: 0.5rem 1rem;
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .copy-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .error {
+            color: #ff6b6b;
+            background-color: rgba(255, 107, 107, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        #result {
+            display: none;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: var(--bg-darker);
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .result-item .links {
+            flex: 1;
+        }
+
+        .result-item .actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">Link<span>ly</span></a>
+    </nav>
+
+    <div class="container">
+        <div class="hero">
+            <h1>Shorten Your <span>Loooong</span> Links :)</h1>
+            <p>Link kısaltıcı ile uzun linklerinizi kısa ve yönetilebilir hale getirin!</p>
+        </div>
+
+        <div class="url-form">
+            <div class="input-group">
+                <input type="url" id="longUrl" placeholder="Kısaltmak istediğiniz URL'yi yapıştırın" required>
+                <button onclick="shortenUrl()">Kısalt</button>
+            </div>
+            <div id="error" class="error"></div>
+        </div>
+
+        <div id="result">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Orijinal URL</th>
+                        <th>Kısa URL</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function shortenUrl() {
+            const longUrl = document.getElementById('longUrl').value;
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+            const resultBody = document.getElementById('resultBody');
+
+            try {
+                const response = await fetch('/shorten', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: longUrl })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    errorDiv.style.display = 'none';
+                    resultDiv.style.display = 'block';
+                    
+                    const newRow = document.createElement('tr');
+                    newRow.innerHTML = `
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${data.long_url}
+                        </td>
+                        <td>
+                            <a href="${data.short_url}" class="short-link" target="_blank">${data.short_url}</a>
+                        </td>
+                        <td>
+                            <button class="copy-btn" onclick="copyToClipboard('${data.short_url}')">Kopyala</button>
+                        </td>
+                    `;
+                    
+                    resultBody.insertBefore(newRow, resultBody.firstChild);
+                    document.getElementById('longUrl').value = '';
+                } else {
+                    errorDiv.style.display = 'block';
+                    errorDiv.textContent = data.error;
+                }
+            } catch (error) {
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = 'Bir hata oluştu. Lütfen tekrar deneyin.';
+            }
+        }
+
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('URL kopyalandı!');
+            } catch (err) {
+                alert('URL kopyalanırken bir hata oluştu');
+            }
+        }
+    </script>
+</body>
+</html>
